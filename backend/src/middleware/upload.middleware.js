@@ -29,9 +29,21 @@ const memoryStorage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
+  console.log(
+    "📁 [MULTER] File filter - Name:",
+    file.originalname,
+    "MIME:",
+    file.mimetype,
+  );
+
   if (ALLOWED_TYPES.includes(file.mimetype)) {
+    console.log("✓ [MULTER] File accepted");
     cb(null, true);
   } else {
+    console.log(
+      "❌ [MULTER] File rejected - not in allowed types:",
+      ALLOWED_TYPES,
+    );
     cb(
       new ValidationError(
         "Only image files are allowed (jpeg, jpg, png, gif, webp)",
@@ -68,7 +80,11 @@ export const uploadImages = uploadToMemory.array("images", MAX_FILES);
 
 // Error handler for multer errors
 export const handleUploadError = (err, req, res, next) => {
+  console.log("📁 [MULTER] Error handler triggered");
+  console.log("📁 [MULTER] Error:", err);
+
   if (err instanceof multer.MulterError) {
+    console.log("❌ [MULTER] MulterError:", err.code);
     if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
@@ -88,12 +104,14 @@ export const handleUploadError = (err, req, res, next) => {
   }
 
   if (err instanceof ValidationError) {
+    console.log("❌ [MULTER] ValidationError:", err.message);
     return res.status(400).json({
       success: false,
       error: err.message,
     });
   }
 
+  console.log("✓ [MULTER] Passing error to next handler");
   next(err);
 };
 

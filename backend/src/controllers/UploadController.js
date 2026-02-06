@@ -1,4 +1,4 @@
-import UploadService from "../services/UploadService.js";
+import LocalUploadService from "../services/LocalUploadService.js";
 
 class UploadController {
   /**
@@ -7,10 +7,15 @@ class UploadController {
    */
   async uploadImages(req, res, next) {
     try {
+      console.log("📥 [UPLOAD CONTROLLER] Request received");
+      console.log("📥 [UPLOAD CONTROLLER] Body:", req.body);
+      console.log("📥 [UPLOAD CONTROLLER] Files:", req.files);
+
       const files = req.files;
       const { roomId } = req.body;
 
       if (!files || files.length === 0) {
+        console.log("❌ [UPLOAD CONTROLLER] No files");
         return res.status(400).json({
           success: false,
           error: "No images provided",
@@ -18,13 +23,19 @@ class UploadController {
       }
 
       if (!roomId) {
+        console.log(
+          "❌ [UPLOAD CONTROLLER] No roomId. Body:",
+          JSON.stringify(req.body),
+        );
         return res.status(400).json({
           success: false,
           error: "Room ID is required",
         });
       }
 
-      const urls = await UploadService.uploadImages(files, roomId);
+      console.log("✓ [UPLOAD CONTROLLER] Validation passed, uploading...");
+
+      const urls = await LocalUploadService.uploadImages(files, roomId);
 
       res.status(200).json({
         success: true,
@@ -54,7 +65,7 @@ class UploadController {
         });
       }
 
-      await UploadService.deleteImages(urls);
+      await LocalUploadService.deleteImages(urls);
 
       res.status(200).json({
         success: true,

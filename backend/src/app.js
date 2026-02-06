@@ -29,6 +29,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded files as static assets
+app.use("/uploads", express.static("uploads"));
+
 // Rate limiting
 app.use("/api", generalLimiter);
 

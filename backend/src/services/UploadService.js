@@ -10,18 +10,40 @@ class UploadService {
    * @returns {Promise<Array>} Array of public URLs
    */
   async uploadImages(files, roomId) {
+    console.log("📤 [UPLOAD SERVICE] Starting upload");
+    console.log("📤 [UPLOAD SERVICE] Files:", files.length);
+    console.log("📤 [UPLOAD SERVICE] Room ID:", roomId);
+
     if (!files || files.length === 0) {
       throw new Error("No files provided");
     }
 
-    const storage = getStorage();
-    const bucket = storage.bucket();
-    const uploadPromises = files.map((file) =>
-      this.uploadSingleImage(bucket, file, roomId),
-    );
+    try {
+      const storage = getStorage();
+      console.log("✓ [UPLOAD SERVICE] Storage initialized");
 
-    const urls = await Promise.all(uploadPromises);
-    return urls;
+      const bucket = storage.bucket();
+      console.log("✓ [UPLOAD SERVICE] Bucket:", bucket.name);
+      console.log("✓ [UPLOAD SERVICE] Bucket ID:", bucket.id);
+
+      const uploadPromises = files.map((file) =>
+        this.uploadSingleImage(bucket, file, roomId),
+      );
+
+      const urls = await Promise.all(uploadPromises);
+      console.log("✅ [UPLOAD SERVICE] Upload successful! URLs:", urls);
+      return urls;
+    } catch (error) {
+      console.error("❌ [UPLOAD SERVICE] Error:", error.message);
+      console.error("❌ [UPLOAD SERVICE] Error name:", error.name);
+      console.error("❌ [UPLOAD SERVICE] Error code:", error.code);
+      console.error(
+        "❌ [UPLOAD SERVICE] Full error:",
+        JSON.stringify(error, null, 2),
+      );
+      console.error("❌ [UPLOAD SERVICE] Stack:", error.stack);
+      throw error;
+    }
   }
 
   /**
@@ -37,6 +59,10 @@ class UploadService {
     const ext = path.extname(file.originalname) || ".jpg";
     const fileName = `chat-images/${roomId}/${timestamp}_${uniqueId}${ext}`;
 
+    console.log(`📁 [UPLOAD SINGLE] File name: ${fileName}`);
+    console.log(`📁 [UPLOAD SINGLE] MIME type: ${file.mimetype}`);
+    console.log(`📁 [UPLOAD SINGLE] Buffer size: ${file.buffer.length}`);
+
     const blob = bucket.file(fileName);
     const blobStream = blob.createWriteStream({
       metadata: {
@@ -49,16 +75,27 @@ class UploadService {
 
     return new Promise((resolve, reject) => {
       blobStream.on("error", (error) => {
+        console.error(`❌ [UPLOAD SINGLE] Stream error:`, error);
+        console.error(`❌ [UPLOAD SINGLE] Error message:`, error.message);
+        console.error(`❌ [UPLOAD SINGLE] Error code:`, error.code);
         reject(new Error(`Upload failed: ${error.message}`));
       });
 
       blobStream.on("finish", async () => {
-        // Make the file publicly accessible
-        await blob.makePublic();
+        try {
+          console.log(`✓ [UPLOAD SINGLE] Stream finished, making public...`);
+          // Make the file publicly accessible
+          await blob.makePublic();
+          console.log(`✓ [UPLOAD SINGLE] File made public`);
 
-        // Get the public URL
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-        resolve(publicUrl);
+          // Get the public URL
+          const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+          console.log(`✅ [UPLOAD SINGLE] Public URL: ${publicUrl}`);
+          resolve(publicUrl);
+        } catch (error) {
+          console.error(`❌ [UPLOAD SINGLE] Error making public:`, error);
+          reject(error);
+        }
       });
 
       blobStream.end(file.buffer);
