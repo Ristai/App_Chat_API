@@ -8,6 +8,7 @@ const router = express.Router();
 router.post('/register', AuthController.register.bind(AuthController));
 router.post('/login', AuthController.login.bind(AuthController));
 router.post('/refresh', AuthController.refreshToken.bind(AuthController));
+router.post('/google', AuthController.googleSignIn.bind(AuthController));
 
 // Protected routes
 router.post('/logout', authMiddleware, AuthController.logout.bind(AuthController));

@@ -233,6 +233,99 @@ class AuthService {
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
+
+  /**
+   * Google Sign-In
+   * @param {string} idToken - Google ID Token from client
+   * @returns {Promise<Object>} User and tokens
+   */
+  async googleSignIn(idToken) {
+    if (!idToken) {
+      throw new ValidationError('Google ID token is required');
+    }
+
+    const auth = this._getAuth();
+    const db = this._getDb();
+
+    try {
+      // Verify Google ID token with Firebase Admin
+      const decodedToken = await auth.verifyIdToken(idToken);
+      
+      const { uid, email, name, picture } = decodedToken;
+
+      if (!email) {
+        throw new ValidationError('Email not found in Google account');
+      }
+
+      // Check if user exists
+      const usersRef = db.collection('users');
+      let userDoc = await usersRef.doc(uid).get();
+
+      let user;
+
+      if (!userDoc.exists) {
+        // Create new user
+        const userData = {
+          uid,
+          name: name || email.split('@')[0],
+          email: email.toLowerCase(),
+          photoUrl: picture || '',
+          role: 'user',
+          isOnline: true,
+          lastSeen: new Date(),
+          createdAt: new Date(),
+          fcmToken: '',
+          authProvider: 'google',
+        };
+
+        await usersRef.doc(uid).set(userData);
+        user = userData;
+      } else {
+        // Update existing user
+        user = { id: userDoc.id, ...userDoc.data() };
+        
+        await usersRef.doc(uid).update({
+          isOnline: true,
+          lastSeen: new Date(),
+          photoUrl: picture || user.photoUrl,
+          name: name || user.name,
+        });
+
+        user.isOnline = true;
+        user.lastSeen = new Date();
+        user.photoUrl = picture || user.photoUrl;
+        user.name = name || user.name;
+      }
+
+      // Generate JWT tokens
+      const accessToken = generateAccessToken({
+        userId: uid,
+        email: user.email,
+        role: user.role,
+      });
+
+      const refreshToken = generateRefreshToken({
+        userId: uid,
+      });
+
+      // Remove password field if exists
+      const { password: _, ...userWithoutPassword } = user;
+
+      return {
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+      };
+    } catch (error) {
+      if (error.code === 'auth/id-token-expired') {
+        throw new AuthenticationError('Google token has expired');
+      }
+      if (error.code === 'auth/invalid-id-token') {
+        throw new AuthenticationError('Invalid Google token');
+      }
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

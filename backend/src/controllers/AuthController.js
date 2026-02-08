@@ -93,6 +93,25 @@ class AuthController {
       next(error);
     }
   }
+
+  /**
+   * Google Sign-In
+   * POST /api/auth/google
+   */
+  async googleSignIn(req, res, next) {
+    try {
+      const { idToken } = req.body;
+      const result = await AuthService.googleSignIn(idToken);
+      
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Google sign-in successful',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new AuthController();
