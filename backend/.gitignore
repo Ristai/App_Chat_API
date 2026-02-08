@@ -37,3 +37,6 @@ temp/
 # Firebase
 firebase-service-account.json
 *-firebase-adminsdk-*.json
+
+# Documentation files (không push lên GitHub)
+*.md

@@ -1,4 +1,4 @@
-import LocalUploadService from "../services/LocalUploadService.js";
+import Base64UploadService from "../services/Base64UploadService.js";
 
 class UploadController {
   /**
@@ -33,17 +33,19 @@ class UploadController {
         });
       }
 
-      console.log("✓ [UPLOAD CONTROLLER] Validation passed, uploading...");
+      console.log(
+        "✓ [UPLOAD CONTROLLER] Validation passed, converting to base64...",
+      );
 
-      const urls = await LocalUploadService.uploadImages(files, roomId);
+      const images = await Base64UploadService.uploadImages(files, roomId);
 
       res.status(200).json({
         success: true,
         data: {
-          urls,
-          count: urls.length,
+          images,
+          count: images.length,
         },
-        message: `Successfully uploaded ${urls.length} image(s)`,
+        message: `Successfully converted ${images.length} image(s) to base64`,
       });
     } catch (error) {
       next(error);
@@ -65,7 +67,7 @@ class UploadController {
         });
       }
 
-      await LocalUploadService.deleteImages(urls);
+      await Base64UploadService.deleteImages(urls);
 
       res.status(200).json({
         success: true,
